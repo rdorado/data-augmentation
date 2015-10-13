@@ -1,0 +1,109 @@
+This is the log of the source code contained in this folder. This file can contain:
+
+ - General description of the source code
+ - Information about how to run the source code
+ - Comments about the objetives/state/future of the tools
+ - A historical description of the development process
+
+
+
+*****************************
+General description
+*****************************
+
+The objetive of this set of tools is to obtain a semi-supervised system that has the capability to categorize a set of documents new documents given some labeled documents. 
+
+
+
+
+*****************************
+List of tools:
+*****************************
+
+---------------------------------------------------------
+Reuters-21578 handler (Reuters-Handler)
+---------------------------------------------------------
+List of files:
+reuters-handler.py
+
+Description:
+
+This tool written in python is a handler to work with the reuters-21578 dataset. It has several functions:
+
+  1. Preprocess the reuters-21578 dataset to adjust it to the desired settings of the experiments.
+  2. Select portions of the documents to avoid full data processing in the development state.
+  
+Execution:
+
+reuters-handler.py [-i <inputfile>] [-o <outputdirectory>] [-p <selrate>]
+
+
+---------------------------------------------------------
+Text preprocessor
+---------------------------------------------------------
+List of files:
+preproc.py
+
+Description:
+This script is used to prepocess text and to transform text into key-document format to use lda-c tool.
+  
+Execution:
+
+preproc.py [-i <inputfile>] [-o <outputdirectory>]
+
+
+*****************************
+Development Log
+*****************************
+
+09/19/2015
+Start of the Reuters-Handler tool
+
+09/22/2015
+Start development of preprocessor
+
+
+
+*****************************
+Useful development commands
+*****************************
+
+Reuters-Handler:
+
+cd Dropbox/RUBEN-PHD/DGA1005/code/lda-topics
+
+python2 reuters-handler.py -i ../../data/reuters21578.tar.gz -o ~/tmp/topics/topics50 -t ~/tmp/topics/topics50/topics.vocab -c ~/tmp/topics/topics50/class.dat -p 0.5
+
+python2 preproc.py -i ~/tmp/topics/topics50/train/labeled/ -o ~/tmp/topics/topics50/topics50labeled.dat -v ~/tmp/topics/topics50/topics50labeled.vocab
+
+./lda-c-dist/lda est 0.25 20 ./lda-c-dist/settings.txt ~/tmp/topics/topics50/topics50labeled.dat random ~/tmp/topics/topics50/lda
+
+python2 ./lda-c-dist/topics.py ~/tmp/topics/twenty_train/unlabeled_lda/final.beta ~/tmp/topics/twenty_train/unlabeled.vocab 20 > ~/tmp/topics/twenty_train/lda_unlabeled20.keywords
+python2 ./lda-c-dist/topics.py ~/tmp/topics/twenty_train/labeled_lda/final.beta ~/tmp/topics/twenty_train/labeled.vocab 20 > ~/tmp/topics/twenty_train/lda_labeled20.keywords
+
+python2 classifier.py -i ~/tmp/topics/topics50/train/labeled/
+python2 classifier.py -i ~/tmp/topics/topics50/train/labeled/ -t ~/tmp/topics/topics50/class.dat
+
+python2 selector.py -i ~/tmp/topics/twenty_train/lda_unlabeled20.keywords
+
+
+
+
+
+python2 20news_preproc.py -i ~/tmp/topics/twenty_train/ -p 0.05
+
+python2 preproc.py -i ~/tmp/topics/twenty_train/data/ -o ~/tmp/topics/twenty_train/data.dat -v ~/tmp/topics/twenty_train/data.vocab
+python2 preproc.py -i ~/tmp/topics/twenty_train/data/labeled/ -o ~/tmp/topics/twenty_train/labeled.dat -v ~/tmp/topics/twenty_train/labeled.vocab
+python2 preproc.py -i ~/tmp/topics/twenty_train/data/unlabeled/ -o ~/tmp/topics/twenty_train/unlabeled.dat -v ~/tmp/topics/twenty_train/unlabeled.vocab
+
+./lda-c-dist/lda est 0.1 20 ./lda-c-dist/settings.txt ~/tmp/topics/twenty_train/data.dat random ~/tmp/topics/twenty_train/data_lda
+./lda-c-dist/lda est 0.25 20 ./lda-c-dist/settings.txt ~/tmp/topics/twenty_train/labeled.dat random ~/tmp/topics/twenty_train/labeled_lda
+./lda-c-dist/lda est 0.25 20 ./lda-c-dist/settings.txt ~/tmp/topics/twenty_train/unlabeled.dat random ~/tmp/topics/twenty_train/unlabeled_lda
+
+./lda-c-dist/topics.py ~/tmp/topics/twenty_train/data10_lda/final.beta ~/tmp/topics/twenty_train/data.vocab 20 > ~/tmp/topics/twenty_train/lda_data10_20.keywords
+
+python2 selector.py -i ~/tmp/topics/twenty_train/lda_data10_20.keywords -t ~/tmp/topics/twenty_train/data/labeled/ -g ~/tmp/topics/twenty_train/twenty_train.dat
+
+
+
+
