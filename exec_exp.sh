@@ -1,17 +1,29 @@
 
 WORK_DIRECTORY=$HOME"/tmp/topics/twenty_train05"
-LDA_DIRECTORY=$HOME"/twentynews_lda"
+LDA_DIRECTORY=$HOME"/tmp/topics/twentynews_lda"
+OUTPUT_DIRECTORY=$HOME"/tmp/topics/"
 
-if [ ! -d "$WORK_DIRECTORY" ]; then
-  mkdir -p $WORK_DIRECTORY
-else
-  rm -fr $WORK_DIRECTORY/*
-fi
 
-python2 20news_preproc.py -i $WORK_DIRECTORY -p 0.05
-python2 selector.py -i $LDA_DIRECTORY/lda_data_4_20.keywords -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat
-python2 selector_clusters.py -i $LDA_DIRECTORY/lda_data_4_20.keywords -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat
+for j in 7 9
+do
+  for i in {1..3}
+  do
 
+    if [ ! -d "$WORK_DIRECTORY" ]; then
+      mkdir -p $WORK_DIRECTORY
+    else
+      rm -fr $WORK_DIRECTORY/*
+    fi
+
+    python2 20news_preproc.py -i $WORK_DIRECTORY -p 0.0$j >> $OUTPUT_DIRECTORY"/result.dat"
+    python2 selector.py -i $LDA_DIRECTORY/lda_data_4_20.keywords -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/result.dat"
+    python2 selector_clusters.py -i $LDA_DIRECTORY/lda_data_4_20.keywords -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/result.dat"
+
+  #python2 selector_clusters.py -i ~/tmp/topics/test/lda_data.keywords -t ~/tmp/topics/test/data/labeled/ -g ~/tmp/topics/test/labels.dat -u ~/tmp/topics/test/data/unlabeled/ -d
+
+  done
+done
+#
 #python2 20news_preproc.py -i $WORK_DIRECTORY -p 0.05
 #python2 20news_preproc.py -i ~/tmp/topics/twenty_train10/ -p 0.1
 #python2 20news_preproc.py -i ~/tmp/topics/twenty_train15/ -p 0.15

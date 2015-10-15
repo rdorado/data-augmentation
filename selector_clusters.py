@@ -5,6 +5,7 @@ import math
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import SGDClassifier
 from sklearn.datasets import fetch_20newsgroups
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
@@ -24,20 +25,24 @@ def printUsage():
   print 'usage: selector.py [-i <inputfile>] [-t <targetsfile>]'    
 
 def tobinary(array):
-  #print len(array)
   resp = [0 for x in range(len(array))] 
   for i in range(0,len(array)):
     if array[i] > 0: resp[i] = 1
+  return resp
+
+def tobinary_matrix(matrix):
+  resp = []
+  for i in range(len(matrix)):
+    row = [0 for x in range(len(matrix[i]))]
+    for j in range(len(matrix[i])):
+      if matrix[i][j] > 0: row[j] = 1
+    resp.append(row) 
   return resp
 
 def removeNans(matrix):
   for array in matrix:
     
     print len(array)
-  #  print len(array)
-  #  for i in range(0,len(array)): 
-  #    if math.isnan(array[i]):
-  #      array[i] = 0
   return matrix  
  
 def toR(array):
@@ -65,6 +70,13 @@ def multlog_probs(matrix1, matrix2):
     resp.append( logsum( dotproduct( matrix1[i], matrix2[i] ) ) ) 
   return resp
 
+def multlog(array1, array2):
+  if len(array1)!=len(array2): raise Exception("Arrays must be equal in length. arr1:"+str(len(array1))+", arr2:"+str(len(array2)))
+  resp = 0
+  for i in range(len(array1)):
+    resp += math.log( max(array1[i]*array2[i],0.0001) ) 
+  return resp
+  
 
 def divide(matrix1, matrix2):
   resp = []
@@ -88,7 +100,6 @@ def nan_to_num(matrix):
   return matrix
 
 def sumlog_probs(array):
-  #print array
   maxlog = max(array)
   return maxlog + math.log( sum([math.exp(x - maxlog) for x in array])  )
 
@@ -101,10 +112,6 @@ def sumlog_probs_vect(array1, array2):
 
 def sum_matrix(matrix1, matrix2):
   resp = []
-  #print "mat1:"
-  #print matrix1
-  #print "mat2:"
-  #print matrix2
   for i in range(len(matrix1)):
     row = []
     for j in range(len(matrix1[i])):
@@ -119,7 +126,7 @@ def sum_matrix(matrix1, matrix2):
 
 def main(argv):
   try:
-    opts, args = getopt.getopt(argv,"i:t:g:u:d",["ifile=","ofile="])
+    opts, args = getopt.getopt(argv,"i:t:g:u:e:d",["ifile=","ofile="])
   except getopt.GetoptError:
     printUsage()
     sys.exit(2)
@@ -129,9 +136,9 @@ def main(argv):
   traindatadir = ""
   unlabeleddatadir = ""
   classfile = ""
-  ntopics = 0
   tokenizer = RegexpTokenizer(r'[a-z]+')
   validatedocs=0
+  uclassfile = ""
 
   for opt, arg in opts:
     if opt == '-i':
@@ -144,19 +151,29 @@ def main(argv):
       unlabeleddatadir = arg
     elif opt == '-d':
       debug = True
+    elif opt == '-e':
+      uclassfile = arg
+
+
+  ntopics = 0
+  nterms = 0
+  vocab = {}                 #Vocabulary
+  clusters = []              #keyword clusters
+  categoryIDdoc = {}         #Map IDdoc vs category
+  nclusters = 0
+
+  categories = []
+  counts = [] 
 
 
   train_documents = [] 
   train_targets = []
-
   #load cluster info from file
-  clusters = []  
+    
   with io.open(keywordsfile, "r", errors='ignore') as fp:
     lines = fp.readlines()
   fp.close()
 
-  vocab = {}
-  nterms = 0
   cluster = []
   for val in lines:
     val = val.strip(" \n")
@@ -172,23 +189,28 @@ def main(argv):
     elif len(cluster) > 0: 
         clusters.append(cluster)
         cluster = []
+  nclusters = len(clusters) 
 
-  nclusters = len(clusters)
-  dictValues = {}
   with io.open(classfile, "r", errors='ignore') as fp:
     lines = fp.readlines()
   fp.close()
   for val in lines:
     key = val[:val.index(",")]
     value =  val[val.index(",")+1:]
-    dictValues[key] = value
+    categoryIDdoc[int(key)] = int(value)
+
+  udictValues = {}
+  with io.open(uclassfile, "r", errors='ignore') as fp:
+    lines = fp.readlines()
+  fp.close()
+  for val in lines:
+    key = val[:val.index(",")]
+    value =  val[val.index(",")+1:]
+    udictValues[int(key)] = int(value)
 
 
-  categories = []
-  counts = [] 
   iddoc = 0
-  ruled_out=0
-
+  ruled_out=0  
   for dirname, dirnames, filenames in os.walk(traindatadir):
     for filename in filenames:
       inpfile = os.path.join(dirname,filename)
@@ -196,10 +218,9 @@ def main(argv):
         lines = fp.readlines()
       fp.close()
      
-      count = []
+      count = [[0 for x in range(nterms)] for x in range(nclusters)]
       doc_counts = 0
-      for i in range(nclusters):
-         count.append([0 for x in range(nterms)]) 
+
       for line in lines:
         if line.startswith("From:") or line.startswith("Subject:") or line.startswith("Reply-To:") or line.startswith("Organization:") or line.startswith("Lines:") or line.lower().startswith("Nntp-Posting-Host:") or line.startswith("X-Newsreader:") or line.startswith("Distribution:") or line.startswith("Keywords:") or line.startswith("Article-I.D.:") or line.startswith("Supersedes:") or line.startswith("Expires:") or line.startswith("NNTP-Posting-Host:") or line.startswith("Summary:") or line.startswith("Originator:") : continue;
         line = line.lower()
@@ -210,21 +231,23 @@ def main(argv):
         for word in filtered_words:
            
            try:
+    
              id_word = vocab[word]
-             for i in range(0,nclusters):
+              
+             for i in range(nclusters):
                if word in clusters[i]:
                   count[i][id_word] += 1
-                  doc_counts+=1    
-             
+                  doc_counts+=1                 
            except:
              pass
+
       if doc_counts>0:
-        for i in range(len(count)):
-          count[i] = tobinary(count[i])
+        #for i in range(len(count)):
+        #count = tobinary(count)
         counts.append(count)
         iddoc += 1
   
-        doc_cat = int(dictValues[filename[:-4]])
+        doc_cat = int(categoryIDdoc[int(filename[:-4])])
         categories.append( doc_cat )
         train_targets.append( doc_cat ) 
         
@@ -238,8 +261,16 @@ def main(argv):
 
   if debug: 
     print "\n**********************************\n  Loaded info:\n**********************************\n"
-    print "Categories loaded: "+str(ncat)+"\n"
     print "Topics loaded: "+str(ntopics)+"\n"
+    print "Number of terms: "+str(nterms)+""
+
+
+    print "\n**********************************\n  Clusters info:\n**********************************\n"
+    for vector in clusters:
+      print "  "+str(vector)
+
+   
+    print "Categories loaded: "+str(ncat)+"\n"
     print "Dictionary:"
     for val in vocab: print "  "+str(vocab[val])+": "+val
     print "\n**********************************\n  Document counts:\n**********************************\n"
@@ -253,14 +284,92 @@ def main(argv):
     print "Ruled out documents: "+str(ruled_out)+"\n"
     
   # Finished loading categories and vocabulary
-  if debug: print( "Train docs:" + str(len(train_documents)) )
+ # if debug: print( "Train docs:" + str(len(train_documents)) )
 
+
+
+ # Acquiring parameters of Model 
+
+  #sumscounts =[[0 for x in range(nterms)] for x in range(ntopics)] for x in range(ncat)]	
+  sumall = [[0 for x in range(nterms)] for x in range(ntopics)]
+  sumtopic = [0 for x in range(ntopics)]
+  sumcatterm = [[0 for x in range(ntopics)] for x in range(ncat)]
+  sumcats = [0 for x in range(ncat)]
+  Ptc = [[0 for x in range(ntopics)] for x in range(ncat)]
+  Pc = [0 for x in range(ncat)]
+
+  for i in range(len(categories)-validatedocs):
+    #sumscounts[categories[i]] = sum_matrix( sumscounts[categories[i]], counts[i] )
+    counts[i] = tobinary_matrix(counts[i])
+    sumall = sum_matrix(sumall, counts[i])
+    #sumcatterm[categories[i]]
+
+    tmp = [0 for x in range(ntopics)]
+    for j in range(ntopics):
+      tmp[j] = sum(counts[i][j])
+    for j in range(ntopics):
+      Ptc[categories[i]][j] += tmp[j]/float(sum(tmp))
+    sumcats[categories[i]]+=1
+
+    tmp = [0 for x in range(ntopics)]
+    for j in range(ntopics):
+      tmp[j] = sum(counts[i][j])
+    for j in range(ntopics):
+      Ptc[categories[i]][j] += tmp[j]/float(sum(tmp))
+    sumcats[categories[i]]+=1
+
+  for i in range(ncat):
+    for j in range(ntopics):
+      Ptc[i][j] = Ptc[i][j]/sumcats[i]
+    Pc = [float(x)/sum(sumcats) for x in sumcats]
+
+  for i in range(ntopics):
+    sumtopic[i] = float( sum(sumall[i]) )
+ 
+  Pwt=[[sumall[i][j]/sumtopic[i] for j in range(nterms)] for i in range(ntopics)]
+
+  if debug: 
+    print "\n**********************************\n  Model parameters acquisition:\n**********************************\n"
+    #print "Sum counts:"
+    #for i in range(len(sumscounts)):
+    #  print "  Category "+str(i)+":" 
+    #  for j in range(len(sumscounts[i])):      
+    #    print "    Topic "+str(j)+":"       
+    #    print "    "+str(sumscounts[i][j])
+
+    print "\nCount topic, term:"
+    for i in range(len(sumall)):      
+      print "    Topic "+str(i)+":"       
+      print "    "+str(sumall[i])
+
+    print "\nTerm aggregates:"
+    for i in range(ntopics):    
+      print "    Topic "+str(i)+":"       
+      print "    "+str(sumtopic[i])
+
+    print "\np(term|topic):"
+    for i in range(len(sumall)):      
+      print "    Topic "+str(i)+":"       
+      print "    "+str(Pwt[i])
+
+    print "\nCount topic, category:"
+    for i in range(len(sumcatterm)):      
+      print "    Category "+str(i)+":"       
+      print "    "+str(sumcatterm[i])
+
+    print "\np( topic|category):"
+    print Ptc
+
+    print "\p(category):"
+    print Pc
+
+
+
+  '''
 
   #nterms x ntopics x ncat
-  # PModel training 
+ 
 
-  sumall = [[0 for x in range(nterms)] for x in range(ntopics)]
-  sumscounts =[[[0 for x in range(nterms)] for x in range(ntopics)] for x in range(ncat)]	
   probs = [[[0 for x in range(nterms)] for x in range(ntopics)] for x in range(ncat)]
   lambdas = [[0 for x in range(ntopics)] for x in range(ncat)]
 
@@ -271,7 +380,6 @@ def main(argv):
   for i in range(ncat):
     probs[i] = divide(sumscounts[i], sumall)
 
-  
   for j in range(0,len(categories)-validatedocs):
     for i in range(len(counts[j])):
       lambdas[categories[j]][i] += sum(counts[j][i])
@@ -281,32 +389,20 @@ def main(argv):
     for j in range(len(lambdas[i])):
       lambdas[i][j] = lambdas[i][j]/sum_lambdas  
 
+  sumTopics = [0 for x in range(ntopics)]
+  for i in range(ntopics):
+    sumTopics[i] = sum(sumall[i]) 
+
+  pDt = [[float(sumall[j][i])/sumTopics[j] for i in range(nterms)] for j in range(ntopics)]
+
+      for k in range(ntopics):
+        probDT = multlog(vector, pDt[k])
   
-  if debug: 
-    print "\n**********************************\n  Model parameters acquisition:\n**********************************\n"
-    print "Sum counts:"
-    for i in range(len(sumscounts)):
-      print "  Category "+str(i)+":" 
-      for j in range(len(sumscounts[i])):      
-        print "    Topic "+str(j)+":"       
-        print "    "+str(sumscounts[i][j])
+  print "p(t): "+str(sumTopics)
+  print "log p(w|t): "+str(pDt)
+   '''
 
-    print "\nAggregates:"
-    for i in range(len(sumall)):      
-      print "    Topic "+str(i)+":"       
-      print "    "+str(sumall[i])
 
-    print "\nProbabilities p(c|term):"
-    for i in range(len(probs)):
-      print "  Category "+str(i)+":" 
-      for j in range(len(probs[i])):      
-        print "    Topic "+str(j)+":"       
-        print "    "+str(probs[i][j])
-
-    print "\nLambdas \lambda*p(c|term):"
-    for i in range(len(probs)):
-      print "  Category "+str(i)+":"
-      print "  "+str(lambdas[i])
 
   '''
   if debug: 
@@ -332,6 +428,7 @@ def main(argv):
   if debug: 
     print "\n**********************************\n  Testing:\n**********************************\n"
   '''
+  ''' 
 
   # Model test
   
@@ -352,6 +449,7 @@ def main(argv):
 
 #  print(counts[114])
 #  print(vocab)   
+  '''
 
   if debug: 
     print "\n**********************************\n  Data augmentation:\n**********************************\n"
@@ -359,6 +457,8 @@ def main(argv):
   
   # data augmentation
   ucounts = []
+  word_counts = []
+  ucategories = []
   for dirname, dirnames, filenames in os.walk(unlabeleddatadir):
     for filename in filenames:
       inpfile = os.path.join(dirname,filename)
@@ -368,6 +468,8 @@ def main(argv):
       with io.open(inpfile, "r", errors='ignore') as fp:
         train_documents.append(fp.read())
 
+      ucategories.append( int(udictValues[int(filename[:-4])]) )
+      word_count = [0 for x in range(nterms)] 
       count = []
       doc_counts = 0
       for i in range(nclusters):
@@ -381,33 +483,60 @@ def main(argv):
         filtered_words = [word for word in filtered_words if word not in ["edu","com","subject","writes","mil", "subject"]]
         for word in filtered_words:
           try:
-            for i in range(0,nclusters):
-              if word in clusters[i]:
-                count[i][id_word] += 1
-                doc_counts+=1    
-             
+            id_word = vocab[word]
+            word_count[id_word]+=1
+              
           except:
             pass
       ucounts.append(count)          
+      word_counts.append(word_count)
 
+  ucorr=0
   predicted = []
-  for vector in ucounts:
+  i=0
+  for vector in word_counts:
+    vector = tobinary(vector)
     best = -10000000
     bestid = -1
-    for j in range(0,ncat):
-      logprobs = multlog_probs( vector,probs[j] )
-      for k in range(len(probs)):
-        logprobs[k] = logprobs[k] + lambdas[j][k] 
-      prob = sumlog_probs(logprobs)
+
+    for j in range(ncat):
       
+      
+      #logprobs = multlog_probs( vector,probs[j] )
+      #for k in range(len(probs)):
+      #  logprobs[k] = logprobs[k] + lambdas[j][k] 
+      #prob = sumlog_probs(logprobs)
+      logprobs = [0 for x in range(ntopics)] 
+      for k in range(ntopics):
+        logprobs[k] = multlog(vector,Pwt[k]) + math.log(Ptc[j][k])
+      prob = sumlog_probs(logprobs) + math.log(Pc[j])
+      #print prob    
+        
+      #prob2 =  log p(c)  +  sum_log p(t|c) p(D=vector|t)   
+
       if best < prob:
         best = prob
         bestid = j
+
+    if bestid==ucategories[i]: ucorr+=1 
+
     predicted.append(bestid)
     train_targets.append(bestid)
+    i+=1
 
 
+  if debug: print("Unsupervised Prediction Accuracy: "+ str(ucorr/float(i)) )
+  else: print str(ucorr/float(i))+",",
 
+
+  if debug: 
+    print "\n**********************************\n  Classifier train and evaluation:\n**********************************\n"
+
+  if debug: 
+    print( "Training classifier with " + str(len(train_documents))+" docs" )
+  #print(counts[114])
+  #print(vocab)   
+  #print("Unsupervised accuracy: "+ str(np.mean(predicted == ucategories)) )
 
   # Train and test the system 
    
@@ -430,7 +559,14 @@ def main(argv):
   X_prediction_tfidf = tf_transformer.transform(X_prediction)
   predicted = clf.predict(X_prediction_tfidf)
   
-  print("Accuracy: "+ str(np.mean(predicted == test_targets)) )
+  if debug: print("NB Accuracy: "+ str(np.mean(predicted == test_targets)) )
+  else: print str(np.mean(predicted == test_targets))+",",
+
+  clf = SGDClassifier(loss='hinge', penalty='l2',alpha=1e-3, n_iter=5, random_state=42).fit(X_train_tf, train_targets)
+  predicted = clf.predict(X_prediction_tfidf)
+
+  if debug: print("SVM Accuracy: "+ str(np.mean(predicted == test_targets)) )
+  else: print str(np.mean(predicted == test_targets))+"",
 
 
   '''

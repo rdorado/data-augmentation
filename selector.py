@@ -124,7 +124,7 @@ def main(argv):
   for val in lines:
     key = val[:val.index(",")]
     value =  val[val.index(",")+1:]
-    dictValues[key] = value
+    dictValues[key] = int(value)
 
   udictValues = {}
   with io.open(uclassfile, "r", errors='ignore') as fp:
@@ -133,8 +133,7 @@ def main(argv):
   for val in lines:
     key = val[:val.index(",")]
     value =  val[val.index(",")+1:]
-    udictValues[key] = value
-
+    udictValues[key] = int(value)
 
   categories = []
   counts = [] 
@@ -170,6 +169,10 @@ def main(argv):
       iddoc += 1 
   ncat = len( set(categories) )
 
+  countcat = [0 for x in range(ncat)]
+  for i in categories:
+    countcat[i]+=1
+
 
   if debug: 
     print "\n**********************************\n  Loaded info:\n**********************************\n"
@@ -192,13 +195,21 @@ def main(argv):
 
   sumscounts = [] 
   sumall = np.zeros(nterms)
-  for i in range(0,ncat):
+  for i in range(ncat):
     sumscounts.append( np.zeros(nterms) )
 
+  logcats = [math.log(x/float(len(categories))) for x in countcat]
+  sumcats = [0 for x in range(ncat)]
   for i in range(0,len(categories)-validatedocs):
     sumscounts[categories[i]] += counts[i]
+    sumcats[categories[i]]+= sum(counts[i])
     sumall+=counts[i]
 
+  conditionals = []
+  for i in range(ncat):
+     tmp = [x/float(sumcats[i]) for x in sumscounts[i]]
+     conditionals.append(tmp)
+  
   probs = []
   for j in range(ncat):
     with np.errstate(invalid='ignore'):
@@ -217,8 +228,6 @@ def main(argv):
       print "  "+str(probs[i])
 
 
-
-
   # Model test
 
   if debug: 
@@ -228,15 +237,13 @@ def main(argv):
   for i in range(len(categories)-validatedocs,len(categories)):
     best = -10000000
     bestid = -1
-    for j in range(0,ncat):
+    for j in range(ncat):
       prob = logsum( dotprodcut(tobinary(counts[i]),probs[j]) )
-      #print prob
       if best < prob:
         best = prob
         bestid = j
     if debug: 
       print "Document ("+i+"), predicted:"+str(bestid)+", real:"+str(categories[i])
-
 
 
 #  print(counts[114])
@@ -277,22 +284,52 @@ def main(argv):
   predicted = []
   i=0
   ucorr=0
+  ucorr2=0
+  ucorr3=0
   for vector in ucounts:
     best = -10000000
     bestid = -1
-    for j in range(0,ncat):
+
+    best2 = -10000000
+    bestid2 = -1
+
+    best3 = -10000000
+    bestid3 = -1
+    for j in range(ncat):
       prob = logsum( dotprodcut(tobinary(vector),probs[j]) )
+      prob2 = logsum( dotprodcut(tobinary(vector),conditionals[j]) )
       
       if best < prob:
         best = prob
         bestid = j
 
+      if best2 < prob2:
+        best2 = prob2
+        bestid2 = j
+
+      prob3 = logcats[j] + prob2
+
+      if best3 < prob3:
+        best3 = prob3
+        bestid3 = j
+
     if bestid==ucategories[i]: ucorr+=1 
+    if bestid2==ucategories[i]: ucorr2+=1 
+    if bestid3==ucategories[i]: ucorr3+=1 
+
+    predicted.append(bestid3)
+    train_targets.append(bestid3)
     i+=1
-    predicted.append(bestid)
-    train_targets.append(bestid)
-  print("Unsupervised Prediction Accuracy: "+ str(ucorr/float(i)) )
-  
+
+  if debug: print("Unsupervised Prediction Accuracy: "+ str(ucorr/float(i)) )
+  else: print str(ucorr/float(i))+",",
+
+  if debug: print("Unsupervised Prediction Accuracy: "+ str(ucorr2/float(i)) )
+  else: print str(ucorr2/float(i))+",",
+
+  if debug: print("Unsupervised Prediction Accuracy: "+ str(ucorr3/float(i)) )
+  else: print str(ucorr3/float(i))+",",
+
 
   if debug: 
     print "\n**********************************\n  Classifier train and evaluation:\n**********************************\n"
@@ -324,13 +361,14 @@ def main(argv):
   X_prediction_tfidf = tf_transformer.transform(X_prediction)
   predicted = clf.predict(X_prediction_tfidf)
   
-  print("NB Accuracy: "+ str(np.mean(predicted == test_targets)) )
-
+  if debug: print("NB Accuracy: "+ str(np.mean(predicted == test_targets)) )
+  else: print str(np.mean(predicted == test_targets))+",",
 
   clf = SGDClassifier(loss='hinge', penalty='l2',alpha=1e-3, n_iter=5, random_state=42).fit(X_train_tf, train_targets)
   predicted = clf.predict(X_prediction_tfidf)
 
-  print("SVM Accuracy: "+ str(np.mean(predicted == test_targets)) )
+  if debug: print("SVM Accuracy: "+ str(np.mean(predicted == test_targets)) )
+  else: print str(np.mean(predicted == test_targets))+",",
 
   '''
   counts = []
