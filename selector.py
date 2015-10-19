@@ -8,7 +8,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.datasets import fetch_20newsgroups
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
-from rpy2.robjects.packages import importr
+#from rpy2.robjects.packages import importr
 
 def tostr(num):
   if num<10:
