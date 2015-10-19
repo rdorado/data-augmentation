@@ -32,10 +32,7 @@ def main(argv):
       targetdir = arg
     if opt == '-p':
       prob = float(arg)
-    '''if opt == '-e':
-      trainrootdir = arg
-    if opt == '-u':
-      testtargetsfile = arg'''
+
   
   if targetdir == "" or prob == -1:
     printUsage()

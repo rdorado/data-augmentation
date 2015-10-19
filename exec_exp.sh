@@ -1,15 +1,15 @@
 
 PROB=$1
 WORK_DIRECTORY=$HOME"/tmp/topics/twenty_train"$PROB
-LDA_DIRECTORY=$HOME"/tmp/topics/twentynews_lda"
+LDA_DIRECTORY=$HOME"/tmp/topics/data"
 OUTPUT_DIRECTORY=$HOME"/tmp/topics/"
-OUTPUT_FILE="result05.dat" 	
+OUTPUT_FILE="result"$PROB".dat" 	
 
-for n in {4..20}
+for n in {10..10}
 do
-  for m in {10..100}
+  for m in {50..50}
   do
-    for j in {1..20}
+    for j in { 1 .. $2 }
     do
 
       if [ ! -d "$WORK_DIRECTORY" ]; then
@@ -17,12 +17,11 @@ do
       else
         rm -fr $WORK_DIRECTORY/*
       fi
-
+      echo $n","$m"," >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
       python2 20news_preproc.py -i $WORK_DIRECTORY -p "0."$PROB >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
       python2 selector.py -i $LDA_DIRECTORY"/lda_data_"$n"_"$m".keywords" -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
       python2 selector_clusters.py -i $LDA_DIRECTORY"/lda_data_"$n"_"$m".keywords" -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
 
-  #python2 selector_clusters.py -i ~/tmp/topics/test/lda_data.keywords -t ~/tmp/topics/test/data/labeled/ -g ~/tmp/topics/test/labels.dat -u ~/tmp/topics/test/data/unlabeled/ -d
     done
   done
 done

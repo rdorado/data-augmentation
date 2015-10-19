@@ -68,7 +68,6 @@ Start development of preprocessor
 Useful development commands
 *****************************
 
-Reuters-Handler:
 
 cd Dropbox/RUBEN-PHD/DGA1005/code/lda-topics
 

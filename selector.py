@@ -1,6 +1,5 @@
 import sys, os, getopt, io
 import numpy as np
-import rpy2.robjects as ro
 import math
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer

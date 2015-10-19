@@ -208,9 +208,11 @@ def main(argv):
     value =  val[val.index(",")+1:]
     udictValues[int(key)] = int(value)
 
+  if debug: print "\n**********************************\n  Reading documents:\n**********************************\n"
 
   iddoc = 0
-  ruled_out=0  
+  ruled_out=0 
+  totaldocs=0 
   for dirname, dirnames, filenames in os.walk(traindatadir):
     for filename in filenames:
       inpfile = os.path.join(dirname,filename)
@@ -220,6 +222,7 @@ def main(argv):
      
       count = [[0 for x in range(nterms)] for x in range(nclusters)]
       doc_counts = 0
+      totaldocs+=1
 
       for line in lines:
         if line.startswith("From:") or line.startswith("Subject:") or line.startswith("Reply-To:") or line.startswith("Organization:") or line.startswith("Lines:") or line.lower().startswith("Nntp-Posting-Host:") or line.startswith("X-Newsreader:") or line.startswith("Distribution:") or line.startswith("Keywords:") or line.startswith("Article-I.D.:") or line.startswith("Supersedes:") or line.startswith("Expires:") or line.startswith("NNTP-Posting-Host:") or line.startswith("Summary:") or line.startswith("Originator:") : continue;
@@ -255,9 +258,12 @@ def main(argv):
           train_documents.append(fp.read())   
       else: 
         ruled_out+=1
+        if debug : print "  Document "+str(totaldocs)+" ruled out"
 
   ncat = len( set(categories) )
 
+
+  if debug : print " "+str(totaldocs)+" documents read"
 
   if debug: 
     print "\n**********************************\n  Loaded info:\n**********************************\n"
@@ -307,6 +313,7 @@ def main(argv):
     tmp = [0 for x in range(ntopics)]
     for j in range(ntopics):
       tmp[j] = sum(counts[i][j])
+
     for j in range(ntopics):
       Ptc[categories[i]][j] += tmp[j]/float(sum(tmp))
     sumcats[categories[i]]+=1
@@ -459,16 +466,16 @@ def main(argv):
   ucounts = []
   word_counts = []
   ucategories = []
+  document_count=0
   for dirname, dirnames, filenames in os.walk(unlabeleddatadir):
     for filename in filenames:
+      keyword_count=0
       inpfile = os.path.join(dirname,filename)
       with io.open(inpfile, "r", errors='ignore') as fp:
         lines = fp.readlines()
       fp.close()
-      with io.open(inpfile, "r", errors='ignore') as fp:
-        train_documents.append(fp.read())
+      document_count+=1
 
-      ucategories.append( int(udictValues[int(filename[:-4])]) )
       word_count = [0 for x in range(nterms)] 
       count = []
       doc_counts = 0
@@ -485,11 +492,19 @@ def main(argv):
           try:
             id_word = vocab[word]
             word_count[id_word]+=1
-              
+            keyword_count+=1  
           except:
             pass
+      
+      #if keyword_count==0:
+      #  print str(keyword_count)+" keywords found in document "+str(document_count)+", skipping it"
+      #  continue
       ucounts.append(count)          
       word_counts.append(word_count)
+      with io.open(inpfile, "r", errors='ignore') as fp:
+        train_documents.append(fp.read())
+      ucategories.append( int(udictValues[int(filename[:-4])]) )
+     
 
   ucorr=0
   predicted = []
@@ -499,17 +514,23 @@ def main(argv):
     best = -10000000
     bestid = -1
 
+    if debug: print "  Example "+str(i+1)+":" 
+    logptD = [0 for x in range(ntopics)] 
+    for k in range(ntopics):
+      if debug: print "   log Prob(Topic="+str(k)+"|Doc):"+str(multlog(vector,Pwt[k]))
+      logptD[k] = multlog(vector,Pwt[k])
+
     for j in range(ncat):
-      
-      
-      #logprobs = multlog_probs( vector,probs[j] )
-      #for k in range(len(probs)):
-      #  logprobs[k] = logprobs[k] + lambdas[j][k] 
-      #prob = sumlog_probs(logprobs)
-      logprobs = [0 for x in range(ntopics)] 
+      if debug: print "   Category "+str(j)+":"
+      if debug: print "   P(Cat="+str(j)+"): "+str(Pc[j])
+
+      probs = [0 for x in range(ntopics)]
       for k in range(ntopics):
-        logprobs[k] = multlog(vector,Pwt[k]) + math.log(Ptc[j][k])
-      prob = sumlog_probs(logprobs) + math.log(Pc[j])
+        if debug: print "    log Prob(Topic="+str(k)+"|Cat="+str(j)+"): "+str(Ptc[j][k])+", log="+str(math.log(Ptc[j][k]))
+        if debug: print "    log Prob(Topic="+str(k)+"|Cat="+str(j)+") + log Prob(Topic="+str(k)+"|Doc): "+str(logptD[k] + math.log(Ptc[j][k]))
+        probs[k] = logptD[k] + math.log(Ptc[j][k])
+      if debug: print  "    sumlog Prob(Topic="+str(k)+"|Cat="+str(j)+"): "+str(sumlog_probs(probs))
+      prob = sumlog_probs(probs) + math.log(Pc[j])
       #print prob    
         
       #prob2 =  log p(c)  +  sum_log p(t|c) p(D=vector|t)   
@@ -518,6 +539,7 @@ def main(argv):
         best = prob
         bestid = j
 
+    if debug: print "   Result: "+str(bestid)+", Expected: "+str(ucategories[i])+"\n\n"
     if bestid==ucategories[i]: ucorr+=1 
 
     predicted.append(bestid)
