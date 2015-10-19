@@ -1,6 +1,6 @@
 import sys, os, getopt, io
 import numpy as np
-import rpy2.robjects as ro
+#import rpy2.robjects as ro
 import math
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -9,7 +9,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.datasets import fetch_20newsgroups
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
-from rpy2.robjects.packages import importr
+#from rpy2.robjects.packages import importr
 
 def tostr(num):
   if num<10:
