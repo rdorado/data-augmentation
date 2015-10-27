@@ -123,7 +123,7 @@ def main(argv):
 
   for cat in range(len(categories)):
     if retrieved[cat]!=0 : pmacro += float(successful[cat])/retrieved[cat]
-    if retrieved[cat]!=0 : rmacro += float(successful[cat])/relevant[cat]
+    if relevant[cat]!=0 : rmacro += float(successful[cat])/relevant[cat]
 
   pmacro = pmacro/len(categories)
   rmacro = rmacro/len(categories)
@@ -150,8 +150,8 @@ def main(argv):
   pmacro = 0
   rmacro = 0
   for cat in range(len(categories)):
-    pmacro += float(successful[cat])/retrieved[cat]
-    rmacro += float(successful[cat])/relevant[cat]
+    if retrieved[cat]!=0 : pmacro += float(successful[cat])/retrieved[cat]
+    if relevant[cat]!=0 : rmacro += float(successful[cat])/relevant[cat]
 
   pmacro = pmacro/len(categories)
   rmacro = rmacro/len(categories)
