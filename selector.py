@@ -8,6 +8,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.datasets import fetch_20newsgroups
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
+from collections import Counter
 #from rpy2.robjects.packages import importr
 
 def tostr(num):
@@ -363,11 +364,59 @@ def main(argv):
   if debug: print("NB Accuracy: "+ str(np.mean(predicted == test_targets)) )
   else: print str(np.mean(predicted == test_targets))+",",
 
+   #Micro measures calculations
+  relevant = Counter(test_targets) 
+  retrieved = Counter(predicted)
+
+  successful_array = [] 
+  for i in range(len(predicted)):
+    if predicted[i] == test_targets[i]:
+      successful_array.append(predicted[i])
+
+  successful = Counter(successful_array)
+  pmacro = 0
+  rmacro = 0
+  for cat in range(len(categories)):
+    pmacro += float(successful[cat])/retrieved[cat]
+    rmacro += float(successful[cat])/relevant[cat]
+
+  pmacro = pmacro/len(categories)
+  rmacro = rmacro/len(categories)
+  print str(pmacro)+",",
+  print str(rmacro)+",",
+  print str(2*(pmacro*rmacro)/(pmacro+rmacro))+",",
+
+
+
+
+
   clf = SGDClassifier(loss='hinge', penalty='l2',alpha=1e-3, n_iter=5, random_state=42).fit(X_train_tf, train_targets)
   predicted = clf.predict(X_prediction_tfidf)
 
   if debug: print("SVM Accuracy: "+ str(np.mean(predicted == test_targets)) )
   else: print str(np.mean(predicted == test_targets))+",",
+
+  #Micro measures calculations
+  relevant = Counter(test_targets) 
+  retrieved = Counter(predicted)
+
+  successful_array = [] 
+  for i in range(len(predicted)):
+    if predicted[i] == test_targets[i]:
+      successful_array.append(predicted[i])
+
+  successful = Counter(successful_array)
+  pmacro = 0
+  rmacro = 0
+  for cat in range(len(categories)):
+    pmacro += float(successful[cat])/retrieved[cat]
+    rmacro += float(successful[cat])/relevant[cat]
+
+  pmacro = pmacro/len(categories)
+  rmacro = rmacro/len(categories)
+  print str(pmacro)+",",
+  print str(rmacro)+",",
+  print str(2*(pmacro*rmacro)/(pmacro+rmacro))+",",
 
   '''
   counts = []

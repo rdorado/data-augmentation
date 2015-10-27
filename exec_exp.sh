@@ -9,7 +9,7 @@ for n in {10..10}
 do
   for m in {50..50}
   do
-    for j in { 1 .. $2 }
+    for j in {1.."$2"}
     do
 
       if [ ! -d "$WORK_DIRECTORY" ]; then
@@ -20,7 +20,7 @@ do
       echo $n","$m"," >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
       python2 20news_preproc.py -i $WORK_DIRECTORY -p "0."$PROB >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
       python2 selector.py -i $LDA_DIRECTORY"/lda_data_"$n"_"$m".keywords" -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
-      python2 selector_clusters.py -i $LDA_DIRECTORY"/lda_data_"$n"_"$m".keywords" -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
+      #python2 selector_clusters.py -i $LDA_DIRECTORY"/lda_data_"$n"_"$m".keywords" -t $WORK_DIRECTORY/data/labeled/ -g $WORK_DIRECTORY/lab_twenty_train.dat -u $WORK_DIRECTORY/data/unlabeled/ -e $WORK_DIRECTORY/unlab_twenty_train.dat >> $OUTPUT_DIRECTORY"/"$OUTPUT_FILE
 
     done
   done

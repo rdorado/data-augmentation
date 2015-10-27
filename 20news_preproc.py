@@ -1,11 +1,12 @@
 import sys, os, getopt, io
-from sklearn.datasets import fetch_20newsgroups
 import numpy as np
+from sklearn.datasets import fetch_20newsgroups
 from nltk.tokenize import RegexpTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
+from collections import Counter
 import random
 
 from nltk.corpus import brown
@@ -48,6 +49,9 @@ def main(argv):
   #categories = ['alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc', 'comp.sys.ibm.pc.hardware', 'comp.sys.mac.hardware', 'comp.windows.x', 'misc.forsale', 'rec.autos', 'rec.motorcycles', 'rec.sport.baseball', 'rec.sport.hockey', 'sci.crypt', 'sci.electronics', 'sci.med', 'sci.space', 'soc.religion.christian', 'talk.politics.guns', 'talk.politics.mideast', 'talk.politics.misc', 'talk.religion.misc']
   twenty_train = fetch_20newsgroups(subset='train',categories=categories, shuffle=True, random_state=42)
   twenty_test = fetch_20newsgroups(subset='test',categories=categories, shuffle=True, random_state=42)
+
+#  twenty_train = fetch_20newsgroups(subset='train', shuffle=True, random_state=42)
+#  twenty_test = fetch_20newsgroups(subset='test', shuffle=True, random_state=42)
   documents = []
   targets = []
   #documents = twenty_train.data
@@ -77,7 +81,7 @@ def main(argv):
      
   docs_test = twenty_test.data
   train_targets = twenty_test.target
-
+  test_targets =  twenty_test.target
   
   lab_targetsoutput.close()
   unlab_targetsoutput.close() 
@@ -104,11 +108,56 @@ def main(argv):
   if debug: print("NB Accuracy: "+ str(np.mean(predicted == train_targets)))
   else: print str(np.mean(predicted == train_targets))+",",
 
+   #Micro measures calculations
+  relevant = Counter(test_targets) 
+  retrieved = Counter(predicted)
+
+  successful_array = [] 
+  for i in range(len(predicted)):
+    if predicted[i] == test_targets[i]:
+      successful_array.append(predicted[i])
+
+  successful = Counter(successful_array)
+  pmacro = 0
+  rmacro = 0
+
+  for cat in range(len(categories)):
+    if retrieved[cat]!=0 : pmacro += float(successful[cat])/retrieved[cat]
+    if retrieved[cat]!=0 : rmacro += float(successful[cat])/relevant[cat]
+
+  pmacro = pmacro/len(categories)
+  rmacro = rmacro/len(categories)
+  print str(pmacro)+",",
+  print str(rmacro)+",",
+  print str(2*(pmacro*rmacro)/(pmacro+rmacro))+",",
+
   clf = SGDClassifier(loss='hinge', penalty='l2',alpha=1e-3, n_iter=5, random_state=42).fit(X_train_tf, targets)
   predicted = clf.predict(X_prediction_tfidf)
 
   if debug: print("SVM Accuracy: "+ str(np.mean(predicted == train_targets)))
   else: print str(np.mean(predicted == train_targets))+",",
+
+   #Micro measures calculations
+  relevant = Counter(test_targets) 
+  retrieved = Counter(predicted)
+
+  successful_array = [] 
+  for i in range(len(predicted)):
+    if predicted[i] == test_targets[i]:
+      successful_array.append(predicted[i])
+
+  successful = Counter(successful_array)
+  pmacro = 0
+  rmacro = 0
+  for cat in range(len(categories)):
+    pmacro += float(successful[cat])/retrieved[cat]
+    rmacro += float(successful[cat])/relevant[cat]
+
+  pmacro = pmacro/len(categories)
+  rmacro = rmacro/len(categories)
+  print str(pmacro)+",",
+  print str(rmacro)+",",
+  print str(2*(pmacro*rmacro)/(pmacro+rmacro))+",",
 
 
 if __name__ == "__main__":
