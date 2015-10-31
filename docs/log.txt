@@ -110,6 +110,6 @@ python2 selector.py -i ~/tmp/topics/twenty_train/lda_data10_20.keywords -t ~/tmp
 python2 ./corpus_to_lda.py -o ~/tmp/topics/data/wikipedia/lda_data.dat -v ~/tmp/topics/data/wikipedia/lda_data.vocab -c ~/Dropbox/RUBEN-PHD/DGA1005/data/wikipedia
 python2 ./corpus_to_lda.py -o ~/tmp/topics/data/20newsgroups/lda_data.dat -v ~/tmp/topics/data/20newsgroups/lda_data.vocab -c 20newsgroups
 
-
+./exec_lda.sh /home/rdorado/tmp/topics/data/wikipedia/ "2 2 10" "10 10 100"
 
 
