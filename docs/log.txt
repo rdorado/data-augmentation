@@ -68,6 +68,7 @@ Start development of preprocessor
 Useful development commands
 *****************************
 
+-- version 0.1 (deprecated)
 
 cd Dropbox/RUBEN-PHD/DGA1005/code/lda-topics
 
@@ -87,7 +88,7 @@ python2 selector.py -i ~/tmp/topics/twenty_train/lda_unlabeled20.keywords
 
 
 
-
+-- version 0.2 (deprecated)
 
 python2 20news_preproc.py -i ~/tmp/topics/twenty_train/ -p 0.05
 
@@ -102,6 +103,12 @@ python2 preproc.py -i ~/tmp/topics/twenty_train/data/unlabeled/ -o ~/tmp/topics/
 ./lda-c-dist/topics.py ~/tmp/topics/twenty_train/data10_lda/final.beta ~/tmp/topics/twenty_train/data.vocab 20 > ~/tmp/topics/twenty_train/lda_data10_20.keywords
 
 python2 selector.py -i ~/tmp/topics/twenty_train/lda_data10_20.keywords -t ~/tmp/topics/twenty_train/data/labeled/ -g ~/tmp/topics/twenty_train/twenty_train.dat
+
+
+-- version 0.3
+
+python2 ./corpus_to_lda.py -o ~/tmp/topics/data/wikipedia/lda_data.dat -v ~/tmp/topics/data/wikipedia/lda_data.vocab -c ~/Dropbox/RUBEN-PHD/DGA1005/data/wikipedia
+python2 ./corpus_to_lda.py -o ~/tmp/topics/data/20newsgroups/lda_data.dat -v ~/tmp/topics/data/20newsgroups/lda_data.vocab -c 20newsgroups
 
 
 

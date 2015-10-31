@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
+from sklearn.ensemble import RandomForestClassifier 
 from collections import Counter
 import random
 
@@ -135,6 +136,35 @@ def main(argv):
   predicted = clf.predict(X_prediction_tfidf)
 
   if debug: print("SVM Accuracy: "+ str(np.mean(predicted == train_targets)))
+  else: print str(np.mean(predicted == train_targets))+",",
+
+   #Micro measures calculations
+  relevant = Counter(test_targets) 
+  retrieved = Counter(predicted)
+
+  successful_array = [] 
+  for i in range(len(predicted)):
+    if predicted[i] == test_targets[i]:
+      successful_array.append(predicted[i])
+
+  successful = Counter(successful_array)
+  pmacro = 0
+  rmacro = 0
+  for cat in range(len(categories)):
+    if retrieved[cat]!=0 : pmacro += float(successful[cat])/retrieved[cat]
+    if relevant[cat]!=0 : rmacro += float(successful[cat])/relevant[cat]
+
+  pmacro = pmacro/len(categories)
+  rmacro = rmacro/len(categories)
+  print str(pmacro)+",",
+  print str(rmacro)+",",
+  print str(2*(pmacro*rmacro)/(pmacro+rmacro))+",",
+
+
+  clf = RandomForestClassifier(n_estimators = 100).fit(X_train_tf, targets)
+ predicted = clf.predict(X_prediction_tfidf)
+
+  if debug: print("Random Forest Accuracy: "+ str(np.mean(predicted == train_targets)))
   else: print str(np.mean(predicted == train_targets))+",",
 
    #Micro measures calculations
