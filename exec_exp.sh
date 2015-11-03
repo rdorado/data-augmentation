@@ -5,11 +5,14 @@ LDA_DIRECTORY=$HOME"/tmp/topics/data"
 OUTPUT_DIRECTORY=$HOME"/tmp/topics/"
 OUTPUT_FILE="result"$PROB".dat" 	
 
-for n in {10..10}
+
+# 20 40 200
+# 50 50 1000
+for n in `seq $2`
 do
-  for m in {50..50}
+  for m in `seq $3`
   do
-    for j in {1.."$2"}
+    for j in {1.."$4"}
     do
 
       if [ ! -d "$WORK_DIRECTORY" ]; then
