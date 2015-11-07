@@ -285,6 +285,7 @@ def main(argv):
              pass
       ucounts.append(count)          
 
+
   predicted = []
   i=0
   ucorr=0
@@ -335,6 +336,35 @@ def main(argv):
   else: print str(ucorr3/float(i))+",",
 
 
+   #Micro measures calculations
+
+  relevant = Counter(ucategories) 
+  retrieved = Counter(predicted)
+
+  successful_array = [] 
+  for i in range(len(predicted)):
+    if predicted[i] == ucategories[i]:
+      successful_array.append(predicted[i])
+
+  successful = Counter(successful_array)
+  pmacro = 0
+  rmacro = 0
+  for cat in range(len(categories)):
+    if retrieved[cat]!=0 : pmacro += float(successful[cat])/retrieved[cat]
+    if relevant[cat]!=0 : rmacro += float(successful[cat])/relevant[cat]
+
+  pmacro = pmacro/len(categories)
+  rmacro = rmacro/len(categories)
+
+  print str(pmacro)+",",
+  print str(rmacro)+",",
+  print str(2*(pmacro*rmacro)/(pmacro+rmacro))+",",
+
+
+
+
+
+
   if debug: 
     print "\n**********************************\n  Classifier train and evaluation:\n**********************************\n"
 
@@ -345,6 +375,14 @@ def main(argv):
   #print("Unsupervised accuracy: "+ str(np.mean(predicted == ucategories)) )
 
   # Train and test the system 
+
+  #categories = ['alt.atheism', 'soc.religion.christian','comp.graphics', 'sci.med']
+  #twenty_test = fetch_20newsgroups(subset='test',categories=categories, shuffle=True, random_state=42)
+  twenty_test = fetch_20newsgroups(subset='test', shuffle=True, random_state=42)
+  test_docs = twenty_test.data
+  test_targets =  twenty_test.target
+
+
    
   count_vect = CountVectorizer()
   X_train_counts = count_vect.fit_transform(train_documents)
@@ -352,11 +390,6 @@ def main(argv):
   X_train_tf = tf_transformer.transform(X_train_counts)
 
   clf = MultinomialNB().fit(X_train_tf, train_targets)
-
-  categories = ['alt.atheism', 'soc.religion.christian','comp.graphics', 'sci.med']
-  twenty_test = fetch_20newsgroups(subset='test',categories=categories, shuffle=True, random_state=42)
-  test_docs = twenty_test.data
-  test_targets =  twenty_test.target
 
   #print(test_docs)
   #print(test_targets)

@@ -89,10 +89,10 @@ def main(argv):
 
 
    
-  categories = ['alt.atheism', 'soc.religion.christian','comp.graphics', 'sci.med']
+  #categories = ['alt.atheism', 'soc.religion.christian','comp.graphics', 'sci.med']
   #categories = ['alt.atheism', 'comp.graphics', 'comp.os.ms-windows.misc', 'comp.sys.ibm.pc.hardware', 'comp.sys.mac.hardware', 'comp.windows.x', 'misc.forsale', 'rec.autos', 'rec.motorcycles', 'rec.sport.baseball', 'rec.sport.hockey', 'sci.crypt', 'sci.electronics', 'sci.med', 'sci.space', 'soc.religion.christian', 'talk.politics.guns', 'talk.politics.mideast', 'talk.politics.misc', 'talk.religion.misc']
-  twenty_train = fetch_20newsgroups(subset='train',categories=categories, shuffle=True, random_state=42)
-  twenty_test = fetch_20newsgroups(subset='test',categories=categories, shuffle=True, random_state=42)
+  twenty_train = fetch_20newsgroups(subset='train', shuffle=True, random_state=42)
+  twenty_test = fetch_20newsgroups(subset='test', shuffle=True, random_state=42)
   documents = []
   targets = []
   #documents = twenty_train.data
