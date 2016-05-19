@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 from nltk.corpus import brown
 from nltk.corpus import reuters
 
-
+#This script transforms a subset of the 20newsgroups to the required format to be used by lda-c-dist.  
 def main(argv):
 
   try:
@@ -36,9 +36,12 @@ def main(argv):
   data = []
 
   if corpus == "20newsgroups":
-#    categories = ['alt.atheism', 'soc.religion.christian','comp.graphics', 'sci.med']
-#  twenty_train = fetch_20newsgroups(subset='train',categories=categories, shuffle=True, random_state=42)
-    data = fetch_20newsgroups(subset='train', shuffle=True, random_state=42).data
+     #categories = []
+     #categories = ['alt.atheism', 'soc.religion.christian','comp.graphics', 'sci.med']
+     categories = ['talk.politics.guns','soc.religion.christian','sci.electronics','rec.sport.baseball','comp.graphics']
+
+     if len(categories) == 0:   data = fetch_20newsgroups(subset='train', shuffle=True, random_state=42).data
+     else: data = fetch_20newsgroups(subset='train',categories=categories, shuffle=True, random_state=42).data
   elif corpus == "brown":
     for fileid in brown.fileids():
       data.append(brown.raw(fileid))
@@ -68,7 +71,6 @@ def main(argv):
           filtered_words = [word for word in splits if word not in stopwords.words('english')]
           filtered_words = [word for word in filtered_words if len(word) > 2]
           filtered_words = [word for word in filtered_words if word not in ["edu","com","subject","writes","mil", "subject"]]
-#          filtered_words = [stemmer.stem(word) for word in filtered_words]
 
           for word in filtered_words:
 
